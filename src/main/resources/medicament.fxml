@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.cell.*?>
+
+<VBox xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="entities.MedicamentController" spacing="10" alignment="CENTER" style="-fx-padding: 20; -fx-background-color: lightgreen;">
+    <Label text="Gestion des Médicaments" style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: darkgreen;"/>
+
+    <!-- Form for Adding/Updating a Medicament -->
+    <HBox spacing="10">
+        <Label text="Nom:"/>
+        <TextField fx:id="nomField" promptText="Entrez le Nom"/>
+        <Label text="Description:"/>
+        <TextField fx:id="descriptionField" promptText="Entrez la Description"/>
+    </HBox>
+    <HBox spacing="10">
+        <Label text="Email:"/>
+        <TextField fx:id="emailField" promptText="Entrez l'Email"/>
+        <Label text="Téléphone:"/>
+        <TextField fx:id="phoneField" promptText="Entrez le Téléphone"/>
+        <Button fx:id="addButton" text="Ajouter" onAction="#ajouterMedicament" style="-fx-background-color: green; -fx-text-fill: white;"/>
+        <Button fx:id="updateButton" text="Modifier" onAction="#modifierMedicament" style="-fx-background-color: green; -fx-text-fill: white;"/>
+    </HBox>
+
+    <!-- Form for Deleting -->
+    <HBox spacing="10">
+        <Label text="ID:"/>
+        <TextField fx:id="deleteIdField" promptText="Entrez l'ID"/>
+        <Button fx:id="deleteButton" text="Supprimer" onAction="#supprimerMedicament" style="-fx-background-color: green; -fx-text-fill: white;"/>
+    </HBox>
+
+    <!-- Table to Display Medicaments -->
+    <TableView fx:id="medicamentsTable">
+        <columns>
+            <TableColumn fx:id="idCol" text="ID" prefWidth="100">
+                <cellValueFactory>
+                    <PropertyValueFactory property="id"/>
+                </cellValueFactory>
+            </TableColumn>
+            <TableColumn fx:id="nomCol" text="Nom" prefWidth="150">
+                <cellValueFactory>
+                    <PropertyValueFactory property="nom"/>
+                </cellValueFactory>
+            </TableColumn>
+            <TableColumn fx:id="descriptionCol" text="Description" prefWidth="200">
+                <cellValueFactory>
+                    <PropertyValueFactory property="description"/>
+                </cellValueFactory>
+            </TableColumn>
+            <TableColumn fx:id="emailCol" text="Email" prefWidth="200">
+                <cellValueFactory>
+                    <PropertyValueFactory property="email"/>
+                </cellValueFactory>
+            </TableColumn>
+            <TableColumn fx:id="phoneCol" text="Téléphone" prefWidth="150">
+                <cellValueFactory>
+                    <PropertyValueFactory property="phone"/>
+                </cellValueFactory>
+            </TableColumn>
+        </columns>
+    </TableView>
+</VBox>

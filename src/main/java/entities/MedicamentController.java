@@ -1,0 +1,179 @@
+package entities;
+
+import services.MedicamentService;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.fxml.FXML;
+import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
+
+import java.sql.SQLException;
+import java.util.regex.Pattern;
+
+public class MedicamentController {
+
+    @FXML
+    private TextField idField;
+    @FXML
+    private TextField nomField;
+    @FXML
+    private TextField descriptionField;
+    @FXML
+    private TextField emailField;
+    @FXML
+    private TextField phoneField;
+    @FXML
+    private TextField deleteIdField;
+    @FXML
+    private TableView<Medicament> medicamentsTable;
+    @FXML
+    private TableColumn<Medicament, Integer> idCol;
+    @FXML
+    private TableColumn<Medicament, String> nomCol;
+    @FXML
+    private TableColumn<Medicament, String> descriptionCol;
+    @FXML
+    private TableColumn<Medicament, String> emailCol;
+    @FXML
+    private TableColumn<Medicament, String> phoneCol;
+
+    private MedicamentService medicamentService;
+
+    // Email validation pattern
+    private static final Pattern EMAIL_PATTERN = Pattern.compile(
+            "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$"
+    );
+
+    // Phone validation pattern (e.g., 1234567890 or +1234567890)
+    private static final Pattern PHONE_PATTERN = Pattern.compile(
+            "^(\\+\\d{1,3})?\\d{10}$"
+    );
+
+    @FXML
+    public void initialize() {
+        medicamentService = new MedicamentService();
+
+        // Set up the table columns
+        idCol.setCellValueFactory(new PropertyValueFactory<>("id"));
+        nomCol.setCellValueFactory(new PropertyValueFactory<>("nom"));
+        descriptionCol.setCellValueFactory(new PropertyValueFactory<>("description"));
+        emailCol.setCellValueFactory(new PropertyValueFactory<>("email"));
+        phoneCol.setCellValueFactory(new PropertyValueFactory<>("phone"));
+
+        // Load data into the table
+        chargerDonneesTableau();
+    }
+
+    @FXML
+    public void ajouterMedicament() {
+        try {
+            // Validate inputs
+            String validationError = validateInputs();
+            if (validationError != null) {
+                afficherAlerte("Erreur de validation", validationError);
+                return;
+            }
+
+            String nom = nomField.getText();
+            String description = descriptionField.getText();
+            String email = emailField.getText();
+            String phone = phoneField.getText();
+            Medicament med = new Medicament(0, nom, description, email, phone); // ID will be auto-generated
+            medicamentService.ajouter(med);
+
+            afficherAlerte("Succès", "Médicament ajouté avec succès !");
+            chargerDonneesTableau();
+            viderChamps();
+        } catch (SQLException e) {
+            afficherAlerte("Erreur", "Erreur lors de l'ajout: " + e.getMessage());
+        }
+    }
+
+    @FXML
+    public void modifierMedicament() {
+        try {
+
+            String validationError = validateInputs();
+            if (validationError != null) {
+                afficherAlerte("Erreur de validation", validationError);
+                return;
+            }
+
+            int id = Integer.parseInt(idField.getText());
+            String nom = nomField.getText();
+            String description = descriptionField.getText();
+            String email = emailField.getText();
+            String phone = phoneField.getText();
+            Medicament med = new Medicament(id, nom, description, email, phone);
+            medicamentService.modifier(med);
+
+            afficherAlerte("Succès", "Médicament modifié avec succès !");
+            chargerDonneesTableau();
+            viderChamps();
+        } catch (SQLException e) {
+            afficherAlerte("Erreur", "Erreur lors de la modification: " + e.getMessage());
+        } catch (NumberFormatException e) {
+            afficherAlerte("Erreur", "L'ID doit être un nombre !");
+        }
+    }
+
+    @FXML
+    public void supprimerMedicament() {
+        try {
+            int id = Integer.parseInt(deleteIdField.getText());
+            medicamentService.supprimer(id);
+
+            afficherAlerte("Succès", "Médicament supprimé avec succès !");
+            chargerDonneesTableau();
+            deleteIdField.clear();
+        } catch (SQLException e) {
+            afficherAlerte("Erreur", "Erreur lors de la suppression: " + e.getMessage());
+        } catch (NumberFormatException e) {
+            afficherAlerte("Erreur", "L'ID doit être un nombre !");
+        }
+    }
+
+    private void chargerDonneesTableau() {
+        try {
+            ObservableList<Medicament> medicaments = FXCollections.observableArrayList(medicamentService.afficherTous());
+            medicamentsTable.setItems(medicaments);
+        } catch (SQLException e) {
+            afficherAlerte("Erreur", "Erreur lors du chargement des données: " + e.getMessage());
+        }
+    }
+
+    private void viderChamps() {
+        idField.clear();
+        nomField.clear();
+        descriptionField.clear();
+        emailField.clear();
+        phoneField.clear();
+    }
+
+    private String validateInputs() {
+
+        String nom = nomField.getText();
+        if (nom == null || nom.trim().isEmpty()) {
+            return "Le champ Nom ne peut pas être vide !";
+        }
+
+        String email = emailField.getText();
+        if (email != null && !email.trim().isEmpty() && !EMAIL_PATTERN.matcher(email).matches()) {
+            return "L'email n'est pas valide ! (Exemple: user@domain.com)";
+        }
+
+        String phone = phoneField.getText();
+        if (phone != null && !phone.trim().isEmpty() && !PHONE_PATTERN.matcher(phone).matches()) {
+            return "Le numéro de téléphone n'est pas valide ! (Exemple: 1234567890 ou +1234567890)";
+        }
+
+        return null;
+    }
+
+    private void afficherAlerte(String titre, String contenu) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(titre);
+        alert.setContentText(contenu);
+        alert.show();
+    }
+}
