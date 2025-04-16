@@ -9,15 +9,13 @@ import java.util.ArrayList;
 public class MedicamentService {
 
     public void ajouter(Medicament med) throws SQLException {
-        String req = "INSERT INTO medicament (nom, description, email, phone, dosage, schedule) VALUES (?, ?, ?, ?, ?, ?)";
+        String req = "INSERT INTO medicament (nom, description, email, phone) VALUES (?, ?, ?, ?)";
         try (Connection conn = MyDatabase.getInstance().getCnx();
              PreparedStatement ps = conn.prepareStatement(req, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, med.getNom());
             ps.setString(2, med.getDescription());
             ps.setString(3, med.getEmail());
             ps.setString(4, med.getPhone());
-            ps.setString(5, med.getDosage());
-            ps.setString(6, med.getSchedule());
             ps.executeUpdate();
 
             // Retrieve the auto-generated ID
@@ -29,16 +27,14 @@ public class MedicamentService {
     }
 
     public void modifier(Medicament med) throws SQLException {
-        String req = "UPDATE medicament SET nom = ?, description = ?, email = ?, phone = ?, dosage = ?, schedule = ? WHERE id = ?";
+        String req = "UPDATE medicament SET nom = ?, description = ?, email = ?, phone = ? WHERE id = ?";
         try (Connection conn = MyDatabase.getInstance().getCnx();
              PreparedStatement ps = conn.prepareStatement(req)) {
             ps.setString(1, med.getNom());
             ps.setString(2, med.getDescription());
             ps.setString(3, med.getEmail());
             ps.setString(4, med.getPhone());
-            ps.setString(5, med.getDosage());
-            ps.setString(6, med.getSchedule());
-            ps.setInt(7, med.getId());
+            ps.setInt(5, med.getId());
             ps.executeUpdate();
         }
     }
@@ -65,8 +61,6 @@ public class MedicamentService {
                 med.setDescription(rs.getString("description"));
                 med.setEmail(rs.getString("email"));
                 med.setPhone(rs.getString("phone"));
-                med.setDosage(rs.getString("dosage"));
-                med.setSchedule(rs.getString("schedule"));
                 medicaments.add(med);
             }
         }

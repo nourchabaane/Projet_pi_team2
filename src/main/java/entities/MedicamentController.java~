@@ -6,14 +6,27 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
-
+import javax.mail.*;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMessage;
+import javax.mail.Authenticator;
+import javax.mail.PasswordAuthentication;
+import javax.mail.internet.MimeMultipart;
 import java.sql.SQLException;
+import java.util.Properties;
+import java.util.Timer;
+import java.util.TimerTask;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.layout.Document;
+import com.itextpdf.layout.element.Paragraph;
+import java.io.FileOutputStream;
+import java.io.File;
 import java.util.regex.Pattern;
 
 public class MedicamentController {
 
-    @FXML
-    private TextField idField;
     @FXML
     private TextField nomField;
     @FXML
@@ -22,6 +35,10 @@ public class MedicamentController {
     private TextField emailField;
     @FXML
     private TextField phoneField;
+    @FXML
+    private TextField dosageField;
+    @FXML
+    private TextField scheduleField;
     @FXML
     private TextField deleteIdField;
     @FXML
@@ -36,6 +53,12 @@ public class MedicamentController {
     private TableColumn<Medicament, String> emailCol;
     @FXML
     private TableColumn<Medicament, String> phoneCol;
+    @FXML
+    private TableColumn<Medicament, String> dosageCol;
+    @FXML
+    private TableColumn<Medicament, String> scheduleCol;
+    @FXML
+    private Button generateReportButton;
 
     private MedicamentService medicamentService;
 
@@ -44,7 +67,7 @@ public class MedicamentController {
             "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$"
     );
 
-    // Phone validation pattern (e.g., 1234567890 or +1234567890)
+    // Phone validation pattern
     private static final Pattern PHONE_PATTERN = Pattern.compile(
             "^(\\+\\d{1,3})?\\d{10}$"
     );
@@ -59,60 +82,69 @@ public class MedicamentController {
         descriptionCol.setCellValueFactory(new PropertyValueFactory<>("description"));
         emailCol.setCellValueFactory(new PropertyValueFactory<>("email"));
         phoneCol.setCellValueFactory(new PropertyValueFactory<>("phone"));
+        dosageCol.setCellValueFactory(new PropertyValueFactory<>("dosage"));
+        scheduleCol.setCellValueFactory(new PropertyValueFactory<>("schedule"));
 
         // Load data into the table
         chargerDonneesTableau();
+
+        // Schedule reminders
+        scheduleReminders();
+
+        // Add generate report button action
+        generateReportButton.setOnAction(e -> generateReport());
     }
 
     @FXML
     public void ajouterMedicament() {
         try {
-
             String validationError = validateInputs();
             if (validationError != null) {
                 afficherAlerte("Erreur de validation", validationError);
                 return;
             }
 
-            int id = Integer.parseInt(idField.getText());
             String nom = nomField.getText();
             String description = descriptionField.getText();
             String email = emailField.getText();
             String phone = phoneField.getText();
-            Medicament med = new Medicament(id, nom, description, email, phone);
+            String dosage = dosageField.getText();
+            String schedule = scheduleField.getText();
+            Medicament med = new Medicament(0, nom, description, email, phone, dosage, schedule);
             medicamentService.ajouter(med);
 
             afficherAlerte("Succès", "Médicament ajouté avec succès !");
             chargerDonneesTableau();
             viderChamps();
+            sendReminderEmail(med); // Send reminder email after adding
         } catch (SQLException e) {
             afficherAlerte("Erreur", "Erreur lors de l'ajout: " + e.getMessage());
-        } catch (NumberFormatException e) {
-            afficherAlerte("Erreur", "L'ID doit être un nombre !");
         }
     }
 
     @FXML
     public void modifierMedicament() {
         try {
-
             String validationError = validateInputs();
             if (validationError != null) {
                 afficherAlerte("Erreur de validation", validationError);
                 return;
             }
 
-            int id = Integer.parseInt(idField.getText());
+            int id = Integer.parseInt(deleteIdField.getText()); // Use deleteIdField for ID input
             String nom = nomField.getText();
             String description = descriptionField.getText();
             String email = emailField.getText();
             String phone = phoneField.getText();
-            Medicament med = new Medicament(id, nom, description, email, phone);
+            String dosage = dosageField.getText();
+            String schedule = scheduleField.getText();
+            Medicament med = new Medicament(id, nom, description, email, phone, dosage, schedule);
             medicamentService.modifier(med);
 
             afficherAlerte("Succès", "Médicament modifié avec succès !");
             chargerDonneesTableau();
             viderChamps();
+            sendReminderEmail(med); // Send reminder email after modifying
         } catch (SQLException e) {
             afficherAlerte("Erreur", "Erreur lors de la modification: " + e.getMessage());
         } catch (NumberFormatException e) {
@@ -146,15 +178,15 @@ public class MedicamentController {
     }
 
     private void viderChamps() {
-        idField.clear();
         nomField.clear();
         descriptionField.clear();
         emailField.clear();
         phoneField.clear();
+        dosageField.clear();
+        scheduleField.clear();
     }
 
     private String validateInputs() {
-
         String nom = nomField.getText();
         if (nom == null || nom.trim().isEmpty()) {
             return "Le champ Nom ne peut pas être vide !";
@@ -170,6 +202,16 @@ public class MedicamentController {
             return "Le numéro de téléphone n'est pas valide ! (Exemple: 1234567890 ou +1234567890)";
         }
 
+        String dosage = dosageField.getText();
+        if (dosage == null || dosage.trim().isEmpty()) {
+            return "Le champ Dosage ne peut pas être vide !";
+        }
+
+        String schedule = scheduleField.getText();
+        if (schedule == null || schedule.trim().isEmpty()) {
+            return "Le champ Horaire ne peut pas être vide !";
+        }
+
         return null;
     }
 
@@ -178,5 +220,141 @@ public class MedicamentController {
         alert.setTitle(titre);
         alert.setContentText(contenu);
         alert.show();
+    }
+
+    // Schedule reminders based on the schedule field
+    private void scheduleReminders() {
+        Timer timer = new Timer();
+        try {
+            ObservableList<Medicament> medicaments = FXCollections.observableArrayList(medicamentService.afficherTous());
+            for (Medicament med : medicaments) {
+                String[] times = med.getSchedule().split(",\\s*");
+                for (String time : times) {
+                    timer.schedule(new TimerTask() {
+                        @Override
+                        public void run() {
+                            sendReminderEmail(med);
+                        }
+                    }, parseTimeToMillis(time.trim())); // Simplified for demo; adjust for accuracy
+                }
+            }
+        } catch (SQLException e) {
+            afficherAlerte("Erreur", "Erreur lors du planification des rappels: " + e.getMessage());
+        }
+    }
+
+    // Simplified time parsing (replace with proper scheduling logic)
+    private long parseTimeToMillis(String time) {
+        // This is a placeholder; use a proper scheduler like Quartz for real-time scheduling
+        return System.currentTimeMillis() + 10000; // Trigger after 10 seconds for testing
+    }
+
+    // Send email reminder
+    private void sendReminderEmail(Medicament med) {
+        String to = med.getEmail();
+        String from = "chabaanenour71@gmail.com";
+        String host = "smtp.gmail.com";
+
+        Properties properties = new Properties();
+        properties.put("mail.smtp.auth", "true");
+        properties.put("mail.smtp.starttls.enable", "true");
+        properties.put("mail.smtp.host", host);
+        properties.put("mail.smtp.port", "587");
+        properties.put("mail.smtp.ssl.trust", "*"); // Temporary workaround for SSL issues
+
+        Session session = Session.getInstance(properties, new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication("chabaanenour71@gmail.com", "efcmvlxwvuukoohf");
+            }
+        });
+        session.setDebug(true); // Enable debugging for troubleshooting
+
+        try {
+            MimeMessage message = new MimeMessage(session);
+            message.setFrom(new InternetAddress(from));
+            message.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
+            message.setSubject("Rappel de prise de médicament");
+            message.setText("Bonjour,\n\nVeuillez prendre " + med.getDosage() + " de " + med.getNom() + " à " + med.getSchedule() + ".\n\nCordialement,\nVotre application de gestion");
+
+            Transport.send(message);
+            System.out.println("Email sent successfully to " + to);
+        } catch (MessagingException e) {
+            System.err.println("Failed to send email: " + e.getMessage());
+            afficherAlerte("Erreur", "Échec de l'envoi de l'email: " + e.getMessage());
+        }
+    }
+
+    // Generate PDF report
+    private void generateReport() {
+        try {
+            PdfWriter writer = new PdfWriter("rapport.pdf");
+            PdfDocument pdf = new PdfDocument(writer);
+            Document document = new Document(pdf);
+            document.add(new Paragraph("Rapport des Rappels - " + new java.util.Date()));
+            document.add(new Paragraph("\nHistorique des rappels:\n"));
+
+            ObservableList<Medicament> medicaments = FXCollections.observableArrayList(medicamentService.afficherTous());
+            for (Medicament med : medicaments) {
+                document.add(new Paragraph("Médicament: " + med.getNom() +
+                        ", Dosage: " + med.getDosage() +
+                        ", Horaire: " + med.getSchedule() +
+                        ", Email: " + med.getEmail() +
+                        ", Statut: À vérifier")); // Add logic to track status
+            }
+
+            document.close();
+            afficherAlerte("Succès", "Rapport généré avec succès sous 'rapport.pdf'");
+            sendReportEmail();
+        } catch (Exception e) {
+            afficherAlerte("Erreur", "Erreur lors de la génération du rapport: " + e.getMessage());
+        }
+    }
+
+    // Send PDF report via email
+    private void sendReportEmail() {
+        String to = "chabaanenour71@gmail.com"; // Replace with admin or patient email
+        String from = "chabaanenour71@gmail.com";
+        String host = "smtp.gmail.com";
+
+        Properties properties = new Properties();
+        properties.put("mail.smtp.auth", "true");
+        properties.put("mail.smtp.starttls.enable", "true");
+        properties.put("mail.smtp.host", host);
+        properties.put("mail.smtp.port", "587");
+        properties.put("mail.smtp.ssl.trust", "*"); // Temporary workaround for SSL issues
+
+        Session session = Session.getInstance(properties, new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication("chabaanenour71@gmail.com", "efcmvlxwvuukoohf");
+            }
+        });
+        session.setDebug(true); // Enable debugging for troubleshooting
+
+        try {
+            MimeMessage message = new MimeMessage(session);
+            message.setFrom(new InternetAddress(from));
+            message.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
+            message.setSubject("Rapport des Rappels");
+
+            // Attach PDF
+            MimeBodyPart messageBodyPart = new MimeBodyPart();
+            messageBodyPart.setText("Veuillez trouver ci-joint le rapport des rappels.");
+            Multipart multipart = new MimeMultipart();
+            multipart.addBodyPart(messageBodyPart);
+
+            messageBodyPart = new MimeBodyPart();
+            File file = new File("rapport.pdf");
+            messageBodyPart.attachFile(file);
+            multipart.addBodyPart(messageBodyPart);
+
+            message.setContent(multipart);
+            Transport.send(message);
+            System.out.println("Report email sent successfully to " + to);
+        } catch (Exception e) {
+            System.err.println("Failed to send report email: " + e.getMessage());
+            afficherAlerte("Erreur", "Échec de l'envoi du rapport: " + e.getMessage());
+        }
     }
 }

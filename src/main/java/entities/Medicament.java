@@ -6,16 +6,20 @@ public class Medicament {
     private String description;
     private String email;
     private String phone;
+    private String dosage;
+    private String schedule;
 
     // Constructors
     public Medicament() {}
 
-    public Medicament(int id, String nom, String description, String email, String phone) {
+    public Medicament(int id, String nom, String description, String email, String phone, String dosage, String schedule) {
         this.id = id;
         this.nom = nom;
         this.description = description;
         this.email = email;
         this.phone = phone;
+        this.dosage = dosage;
+        this.schedule = schedule;
     }
 
     // Getters and Setters
@@ -59,6 +63,22 @@ public class Medicament {
         this.phone = phone;
     }
 
+    public String getDosage() {
+        return dosage;
+    }
+
+    public void setDosage(String dosage) {
+        this.dosage = dosage;
+    }
+
+    public String getSchedule() {
+        return schedule;
+    }
+
+    public void setSchedule(String schedule) {
+        this.schedule = schedule;
+    }
+
     @Override
     public String toString() {
         return "Medicament{" +
@@ -67,6 +87,8 @@ public class Medicament {
                 ", description='" + description + '\'' +
                 ", email='" + email + '\'' +
                 ", phone='" + phone + '\'' +
+                ", dosage='" + dosage + '\'' +
+                ", schedule='" + schedule + '\'' +
                 '}';
     }
 }

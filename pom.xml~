@@ -17,14 +17,13 @@
     </properties>
 
     <dependencies>
-        <!-- ✅ Fixed MySQL Connector -->
+        <!-- MySQL Connector -->
         <dependency>
-            <groupId>com.mysql</groupId>
-            <artifactId>mysql-connector-j</artifactId>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
             <version>8.0.33</version>
         </dependency>
-
-        <!-- JavaFX -->
+        <!-- JavaFX Dependencies -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
@@ -35,33 +34,13 @@
             <artifactId>javafx-fxml</artifactId>
             <version>${javafx.version}</version>
         </dependency>
-
-        <!-- ✅ Fixed iText (split into usable parts) -->
+        <!-- iText for PDF generation -->
         <dependency>
             <groupId>com.itextpdf</groupId>
             <artifactId>itext7-core</artifactId>
             <version>${itext.version}</version>
-            <type>pom</type>
-        </dependency>
-        <dependency>
-            <groupId>com.itextpdf</groupId>
-            <artifactId>kernel</artifactId>
-            <version>${itext.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.itextpdf</groupId>
-            <artifactId>layout</artifactId>
-            <version>${itext.version}</version>
         </dependency>
     </dependencies>
-
-    <!-- ✅ Add iText repository (optional but sometimes needed) -->
-    <repositories>
-        <repository>
-            <id>itext</id>
-            <url>https://repo.itextsupport.com/releases</url>
-        </repository>
-    </repositories>
 
     <build>
         <plugins>

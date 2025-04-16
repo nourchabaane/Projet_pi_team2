@@ -6,14 +6,18 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
-
 import java.sql.SQLException;
+import java.util.Timer;
+import java.util.TimerTask;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.layout.Document;
+import com.itextpdf.layout.element.Paragraph;
+import java.io.FileOutputStream;
 import java.util.regex.Pattern;
 
 public class MedicamentController {
 
-    @FXML
-    private TextField idField;
     @FXML
     private TextField nomField;
     @FXML
@@ -22,6 +26,10 @@ public class MedicamentController {
     private TextField emailField;
     @FXML
     private TextField phoneField;
+    @FXML
+    private TextField dosageField;
+    @FXML
+    private TextField scheduleField;
     @FXML
     private TextField deleteIdField;
     @FXML
@@ -36,15 +44,21 @@ public class MedicamentController {
     private TableColumn<Medicament, String> emailCol;
     @FXML
     private TableColumn<Medicament, String> phoneCol;
+    @FXML
+    private TableColumn<Medicament, String> dosageCol;
+    @FXML
+    private TableColumn<Medicament, String> scheduleCol;
+    @FXML
+    private Button generateReportButton;
 
     private MedicamentService medicamentService;
 
-    // Email validation pattern
+    // Email validation pattern (kept for form validation, though email won't be used)
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
             "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$"
     );
 
-    // Phone validation pattern (e.g., 1234567890 or +1234567890)
+    // Phone validation pattern
     private static final Pattern PHONE_PATTERN = Pattern.compile(
             "^(\\+\\d{1,3})?\\d{10}$"
     );
@@ -59,15 +73,22 @@ public class MedicamentController {
         descriptionCol.setCellValueFactory(new PropertyValueFactory<>("description"));
         emailCol.setCellValueFactory(new PropertyValueFactory<>("email"));
         phoneCol.setCellValueFactory(new PropertyValueFactory<>("phone"));
+        dosageCol.setCellValueFactory(new PropertyValueFactory<>("dosage"));
+        scheduleCol.setCellValueFactory(new PropertyValueFactory<>("schedule"));
 
         // Load data into the table
         chargerDonneesTableau();
+
+        // Schedule reminders (placeholder, no email action)
+        scheduleReminders();
+
+        // Add generate report button action
+        generateReportButton.setOnAction(e -> generateReport());
     }
 
     @FXML
     public void ajouterMedicament() {
         try {
-            // Validate inputs
             String validationError = validateInputs();
             if (validationError != null) {
                 afficherAlerte("Erreur de validation", validationError);
@@ -78,7 +99,9 @@ public class MedicamentController {
             String description = descriptionField.getText();
             String email = emailField.getText();
             String phone = phoneField.getText();
-            Medicament med = new Medicament(0, nom, description, email, phone); // ID will be auto-generated
+            String dosage = dosageField.getText();
+            String schedule = scheduleField.getText();
+            Medicament med = new Medicament(0, nom, description, email, phone, dosage, schedule);
             medicamentService.ajouter(med);
 
             afficherAlerte("Succès", "Médicament ajouté avec succès !");
@@ -92,19 +115,20 @@ public class MedicamentController {
     @FXML
     public void modifierMedicament() {
         try {
-
             String validationError = validateInputs();
             if (validationError != null) {
                 afficherAlerte("Erreur de validation", validationError);
                 return;
             }
 
-            int id = Integer.parseInt(idField.getText());
+            int id = Integer.parseInt(deleteIdField.getText()); // Use deleteIdField for ID input
             String nom = nomField.getText();
             String description = descriptionField.getText();
             String email = emailField.getText();
             String phone = phoneField.getText();
-            Medicament med = new Medicament(id, nom, description, email, phone);
+            String dosage = dosageField.getText();
+            String schedule = scheduleField.getText();
+            Medicament med = new Medicament(id, nom, description, email, phone, dosage, schedule);
             medicamentService.modifier(med);
 
             afficherAlerte("Succès", "Médicament modifié avec succès !");
@@ -143,15 +167,15 @@ public class MedicamentController {
     }
 
     private void viderChamps() {
-        idField.clear();
         nomField.clear();
         descriptionField.clear();
         emailField.clear();
         phoneField.clear();
+        dosageField.clear();
+        scheduleField.clear();
     }
 
     private String validateInputs() {
-
         String nom = nomField.getText();
         if (nom == null || nom.trim().isEmpty()) {
             return "Le champ Nom ne peut pas être vide !";
@@ -167,6 +191,16 @@ public class MedicamentController {
             return "Le numéro de téléphone n'est pas valide ! (Exemple: 1234567890 ou +1234567890)";
         }
 
+        String dosage = dosageField.getText();
+        if (dosage == null || dosage.trim().isEmpty()) {
+            return "Le champ Dosage ne peut pas être vide !";
+        }
+
+        String schedule = scheduleField.getText();
+        if (schedule == null || schedule.trim().isEmpty()) {
+            return "Le champ Horaire ne peut pas être vide !";
+        }
+
         return null;
     }
 
@@ -175,5 +209,58 @@ public class MedicamentController {
         alert.setTitle(titre);
         alert.setContentText(contenu);
         alert.show();
+    }
+
+    // Schedule reminders (placeholder, no email action)
+    private void scheduleReminders() {
+        Timer timer = new Timer();
+        try {
+            ObservableList<Medicament> medicaments = FXCollections.observableArrayList(medicamentService.afficherTous());
+            for (Medicament med : medicaments) {
+                String[] times = med.getSchedule().split(",\\s*");
+                for (String time : times) {
+                    timer.schedule(new TimerTask() {
+                        @Override
+                        public void run() {
+                            // No email action, just a placeholder
+                            System.out.println("Reminder scheduled for " + med.getNom() + " at " + time);
+                        }
+                    }, parseTimeToMillis(time.trim()));
+                }
+            }
+        } catch (SQLException e) {
+            afficherAlerte("Erreur", "Erreur lors du planification des rappels: " + e.getMessage());
+        }
+    }
+
+    // Simplified time parsing (replace with proper scheduling logic)
+    private long parseTimeToMillis(String time) {
+        // This is a placeholder; use a proper scheduler like Quartz for real-time scheduling
+        return System.currentTimeMillis() + 10000; // Trigger after 10 seconds for testing
+    }
+
+    // Generate PDF report
+    private void generateReport() {
+        try {
+            PdfWriter writer = new PdfWriter("rapport.pdf");
+            PdfDocument pdf = new PdfDocument(writer);
+            Document document = new Document(pdf);
+            document.add(new Paragraph("Rapport des Rappels - " + new java.util.Date()));
+            document.add(new Paragraph("\nHistorique des rappels:\n"));
+
+            ObservableList<Medicament> medicaments = FXCollections.observableArrayList(medicamentService.afficherTous());
+            for (Medicament med : medicaments) {
+                document.add(new Paragraph("Médicament: " + med.getNom() +
+                        ", Dosage: " + med.getDosage() +
+                        ", Horaire: " + med.getSchedule() +
+                        ", Email: " + med.getEmail() +
+                        ", Statut: À vérifier"));
+            }
+
+            document.close();
+            afficherAlerte("Succès", "Rapport généré avec succès sous 'rapport.pdf'");
+        } catch (Exception e) {
+            afficherAlerte("Erreur", "Erreur lors de la génération du rapport: " + e.getMessage());
+        }
     }
 }

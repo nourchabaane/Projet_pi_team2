@@ -35,10 +35,7 @@
         <TextField fx:id="deleteIdField" promptText="Entrez l'ID"/>
         <Button fx:id="deleteButton" text="Supprimer" onAction="#supprimerMedicament" style="-fx-background-color: green; -fx-text-fill: white;"/>
     </HBox>
-    <!-- Generate Report Button -->
-    <HBox spacing="10">
-        <Button fx:id="generateReportButton" text="Générer Rapport" style="-fx-background-color: green; -fx-text-fill: white;"/>
-    </HBox>
+
     <!-- Table to Display Medicaments -->
     <TableView fx:id="medicamentsTable">
         <columns>
