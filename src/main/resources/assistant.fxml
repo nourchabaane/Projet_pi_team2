@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
+      fx:controller="entities.AssistantController" 
+      spacing="10" 
+      style="-fx-padding: 20; -fx-background-color: #f0f8ff;">
+    
+    <HBox alignment="CENTER" spacing="10">
+        <Label text="Assistant IA - Aide Médicaments" 
+               style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+    </HBox>
+    
+    <!-- Chat Area -->
+    <ScrollPane VBox.vgrow="ALWAYS" style="-fx-background: transparent; -fx-background-color: transparent;">
+        <VBox fx:id="chatArea" spacing="10" style="-fx-padding: 10;">
+            <!-- Chat messages will be added here dynamically -->
+        </VBox>
+    </ScrollPane>
+    
+    <!-- Input Area -->
+    <HBox spacing="10" alignment="CENTER">
+        <TextField fx:id="userInput" promptText="Posez votre question ici..." 
+                   HBox.hgrow="ALWAYS" 
+                   style="-fx-padding: 10; -fx-font-size: 14px;"/>
+        <Button fx:id="sendButton" text="Envoyer" 
+                onAction="#sendMessage" 
+                style="-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-size: 14px;"/>
+        <Button fx:id="backButton" text="Retour" 
+                onAction="#retourGestionMedicaments" 
+                style="-fx-background-color: #34495e; -fx-text-fill: white; -fx-font-size: 14px;"/>
+    </HBox>
+    
+    <!-- Helper Text -->
+    <Label text="Suggestions: Demandez des informations sur les médicaments, les dosages, ou les horaires" 
+           style="-fx-font-size: 12px; -fx-text-fill: #7f8c8d;"
+           alignment="CENTER"/>
+           
+</VBox>

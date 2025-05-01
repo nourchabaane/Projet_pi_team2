@@ -35,48 +35,53 @@
         <TextField fx:id="deleteIdField" promptText="Entrez l'ID"/>
         <Button fx:id="deleteButton" text="Supprimer" onAction="#supprimerMedicament" style="-fx-background-color: green; -fx-text-fill: white;"/>
     </HBox>
-    <!-- Generate Report Button -->
-    <HBox spacing="10">
+    <!-- Navigation Buttons -->
+    <HBox spacing="10" alignment="CENTER">
         <Button fx:id="generateReportButton" text="Générer Rapport" style="-fx-background-color: green; -fx-text-fill: white;"/>
+        <Button fx:id="assistantButton" text="Assistant IA" style="-fx-background-color: blue; -fx-text-fill: white;"/>
+        <Button fx:id="dashboardButton" text="Tableau de Bord" onAction="#openDashboard" style="-fx-background-color: #9b59b6; -fx-text-fill: white;"/>
     </HBox>
-    <!-- Table to Display Medicaments -->
-    <TableView fx:id="medicamentsTable">
-        <columns>
-            <TableColumn fx:id="idCol" text="ID" prefWidth="100">
-                <cellValueFactory>
-                    <PropertyValueFactory property="id"/>
-                </cellValueFactory>
-            </TableColumn>
-            <TableColumn fx:id="nomCol" text="Nom" prefWidth="150">
-                <cellValueFactory>
-                    <PropertyValueFactory property="nom"/>
-                </cellValueFactory>
-            </TableColumn>
-            <TableColumn fx:id="descriptionCol" text="Description" prefWidth="200">
-                <cellValueFactory>
-                    <PropertyValueFactory property="description"/>
-                </cellValueFactory>
-            </TableColumn>
-            <TableColumn fx:id="emailCol" text="Email" prefWidth="200">
-                <cellValueFactory>
-                    <PropertyValueFactory property="email"/>
-                </cellValueFactory>
-            </TableColumn>
-            <TableColumn fx:id="phoneCol" text="Téléphone" prefWidth="150">
-                <cellValueFactory>
-                    <PropertyValueFactory property="phone"/>
-                </cellValueFactory>
-            </TableColumn>
-            <TableColumn fx:id="dosageCol" text="Dosage" prefWidth="150">
-                <cellValueFactory>
-                    <PropertyValueFactory property="dosage"/>
-                </cellValueFactory>
-            </TableColumn>
-            <TableColumn fx:id="scheduleCol" text="Horaire" prefWidth="200">
-                <cellValueFactory>
-                    <PropertyValueFactory property="schedule"/>
-                </cellValueFactory>
-            </TableColumn>
-        </columns>
-    </TableView>
+    <!-- Table to Display Medicaments with Pagination -->
+    <VBox>
+        <TableView fx:id="medicamentsTable" VBox.vgrow="ALWAYS">
+            <columns>
+                <TableColumn fx:id="idCol" text="ID" prefWidth="100">
+                    <cellValueFactory>
+                        <PropertyValueFactory property="id"/>
+                    </cellValueFactory>
+                </TableColumn>
+                <TableColumn fx:id="nomCol" text="Nom" prefWidth="150">
+                    <cellValueFactory>
+                        <PropertyValueFactory property="nom"/>
+                    </cellValueFactory>
+                </TableColumn>
+                <TableColumn fx:id="descriptionCol" text="Description" prefWidth="200">
+                    <cellValueFactory>
+                        <PropertyValueFactory property="description"/>
+                    </cellValueFactory>
+                </TableColumn>
+                <TableColumn fx:id="emailCol" text="Email" prefWidth="200">
+                    <cellValueFactory>
+                        <PropertyValueFactory property="email"/>
+                    </cellValueFactory>
+                </TableColumn>
+                <TableColumn fx:id="phoneCol" text="Téléphone" prefWidth="150">
+                    <cellValueFactory>
+                        <PropertyValueFactory property="phone"/>
+                    </cellValueFactory>
+                </TableColumn>
+                <TableColumn fx:id="dosageCol" text="Dosage" prefWidth="150">
+                    <cellValueFactory>
+                        <PropertyValueFactory property="dosage"/>
+                    </cellValueFactory>
+                </TableColumn>
+                <TableColumn fx:id="scheduleCol" text="Horaire" prefWidth="200">
+                    <cellValueFactory>
+                        <PropertyValueFactory property="schedule"/>
+                    </cellValueFactory>
+                </TableColumn>
+            </columns>
+        </TableView>
+        <Pagination fx:id="pagination" pageCount="1" maxPageIndicatorCount="5" style="-fx-padding: 10;"/>
+    </VBox>
 </VBox>

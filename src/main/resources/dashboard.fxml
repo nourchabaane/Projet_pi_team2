@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.chart.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
+      fx:controller="entities.DashboardController"
+      spacing="20" 
+      style="-fx-padding: 20; -fx-background-color: #f0f8ff;">
+    
+    <HBox alignment="CENTER" spacing="10">
+        <Label text="Tableau de Bord Santé" 
+               style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+    </HBox>
+    
+    <!-- Charts Section -->
+    <HBox spacing="20" alignment="CENTER">
+        <!-- Adherence Rate Chart -->
+        <VBox alignment="CENTER" style="-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 10;">
+            <Label text="Taux d'Adhérence" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+            <PieChart fx:id="adherenceChart" prefHeight="300" prefWidth="400" 
+                     style="-fx-pie-label-visible: true; -fx-legend-visible: true;"/>
+        </VBox>
+        
+        <!-- Usage Frequency Chart -->
+        <VBox alignment="CENTER" style="-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 10;">
+            <Label text="Fréquence d'Utilisation" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+            <BarChart fx:id="usageChart" prefHeight="300" prefWidth="400">
+                <xAxis>
+                    <CategoryAxis label="Médicaments"/>
+                </xAxis>
+                <yAxis>
+                    <NumberAxis label="Fréquence par Semaine"/>
+                </yAxis>
+            </BarChart>
+        </VBox>
+    </HBox>
+    
+    <!-- Statistics Cards -->
+    <HBox spacing="20" alignment="CENTER">
+        <!-- Total Medications Card -->
+        <VBox style="-fx-background-color: #3498db; -fx-padding: 15; -fx-background-radius: 10;" 
+              prefWidth="200" prefHeight="100">
+            <Label text="Total Médicaments" style="-fx-text-fill: white; -fx-font-size: 14px;"/>
+            <Label fx:id="totalMedsLabel" text="0" 
+                   style="-fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: bold;"/>
+        </VBox>
+        
+        <!-- Adherence Score Card -->
+        <VBox style="-fx-background-color: #2ecc71; -fx-padding: 15; -fx-background-radius: 10;" 
+              prefWidth="200" prefHeight="100">
+            <Label text="Score d'Adhérence" style="-fx-text-fill: white; -fx-font-size: 14px;"/>
+            <Label fx:id="adherenceScoreLabel" text="0%" 
+                   style="-fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: bold;"/>
+        </VBox>
+        
+        <!-- Next Dose Card -->
+        <VBox style="-fx-background-color: #e74c3c; -fx-padding: 15; -fx-background-radius: 10;" 
+              prefWidth="200" prefHeight="100">
+            <Label text="Prochaine Dose" style="-fx-text-fill: white; -fx-font-size: 14px;"/>
+            <Label fx:id="nextDoseLabel" text="Aucune" 
+                   style="-fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: bold;"/>
+        </VBox>
+    </HBox>
+    
+    <!-- Action Buttons -->
+    <HBox spacing="10" alignment="CENTER">
+        <Button fx:id="refreshButton" text="Actualiser" onAction="#refreshData"
+                style="-fx-background-color: #3498db; -fx-text-fill: white;"/>
+        <Button fx:id="backButton" text="Retour" onAction="#goBack"
+                style="-fx-background-color: #34495e; -fx-text-fill: white;"/>
+    </HBox>
+    
+</VBox>

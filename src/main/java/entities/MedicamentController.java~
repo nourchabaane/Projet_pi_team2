@@ -6,15 +6,7 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javax.mail.*;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMessage;
-import javax.mail.Authenticator;
-import javax.mail.PasswordAuthentication;
-import javax.mail.internet.MimeMultipart;
 import java.sql.SQLException;
-import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
 import com.itextpdf.kernel.pdf.PdfDocument;
@@ -22,7 +14,6 @@ import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Paragraph;
 import java.io.FileOutputStream;
-import java.io.File;
 import java.util.regex.Pattern;
 
 public class MedicamentController {
@@ -59,10 +50,14 @@ public class MedicamentController {
     private TableColumn<Medicament, String> scheduleCol;
     @FXML
     private Button generateReportButton;
+    @FXML
+    private Button assistantButton;
+    @FXML
+    private Pagination pagination;
 
     private MedicamentService medicamentService;
 
-    // Email validation pattern
+    // Email validation pattern (kept for form validation, though email won't be used)
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
             "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$"
     );
@@ -71,6 +66,9 @@ public class MedicamentController {
     private static final Pattern PHONE_PATTERN = Pattern.compile(
             "^(\\+\\d{1,3})?\\d{10}$"
     );
+
+    private static final int ITEMS_PER_PAGE = 10;
+    private ObservableList<Medicament> allMedicaments;
 
     @FXML
     public void initialize() {
@@ -88,11 +86,17 @@ public class MedicamentController {
         // Load data into the table
         chargerDonneesTableau();
 
-        // Schedule reminders
+        // Set up pagination
+        pagination.setPageFactory(this::createPage);
+
+        // Schedule reminders (placeholder, no email action)
         scheduleReminders();
 
         // Add generate report button action
         generateReportButton.setOnAction(e -> generateReport());
+
+        // Add assistant button action
+        assistantButton.setOnAction(e -> navigateToAssistant());
     }
 
     @FXML
@@ -116,7 +120,6 @@ public class MedicamentController {
             afficherAlerte("Succès", "Médicament ajouté avec succès !");
             chargerDonneesTableau();
             viderChamps();
-            sendReminderEmail(med); // Send reminder email after adding
         } catch (SQLException e) {
             afficherAlerte("Erreur", "Erreur lors de l'ajout: " + e.getMessage());
         }
@@ -144,7 +147,6 @@ public class MedicamentController {
             afficherAlerte("Succès", "Médicament modifié avec succès !");
             chargerDonneesTableau();
             viderChamps();
-            sendReminderEmail(med); // Send reminder email after modifying
         } catch (SQLException e) {
             afficherAlerte("Erreur", "Erreur lors de la modification: " + e.getMessage());
         } catch (NumberFormatException e) {
@@ -170,10 +172,31 @@ public class MedicamentController {
 
     private void chargerDonneesTableau() {
         try {
-            ObservableList<Medicament> medicaments = FXCollections.observableArrayList(medicamentService.afficherTous());
-            medicamentsTable.setItems(medicaments);
+            allMedicaments = FXCollections.observableArrayList(medicamentService.afficherTous());
+            int totalPages = (allMedicaments.size() + ITEMS_PER_PAGE - 1) / ITEMS_PER_PAGE;
+            pagination.setPageCount(totalPages);
+            pagination.setCurrentPageIndex(0);
         } catch (SQLException e) {
             afficherAlerte("Erreur", "Erreur lors du chargement des données: " + e.getMessage());
+        }
+    }
+
+    private TableView<Medicament> createPage(int pageIndex) {
+        int fromIndex = pageIndex * ITEMS_PER_PAGE;
+        int toIndex = Math.min(fromIndex + ITEMS_PER_PAGE, allMedicaments.size());
+        medicamentsTable.setItems(FXCollections.observableArrayList(
+                allMedicaments.subList(fromIndex, toIndex)));
+        return medicamentsTable;
+    }
+
+    private void navigateToAssistant() {
+        try {
+            Parent root = FXMLLoader.load(getClass().getResource("/assistant.fxml"));
+            Scene scene = new Scene(root);
+            Stage stage = (Stage) assistantButton.getScene().getWindow();
+            stage.setScene(scene);
+        } catch (IOException e) {
+            afficherAlerte("Erreur", "Erreur lors de la navigation: " + e.getMessage());
         }
     }
 
@@ -222,7 +245,7 @@ public class MedicamentController {
         alert.show();
     }
 
-    // Schedule reminders based on the schedule field
+    // Schedule reminders (placeholder, no email action)
     private void scheduleReminders() {
         Timer timer = new Timer();
         try {
@@ -233,9 +256,10 @@ public class MedicamentController {
                     timer.schedule(new TimerTask() {
                         @Override
                         public void run() {
-                            sendReminderEmail(med);
+                            // No email action, just a placeholder
+                            System.out.println("Reminder scheduled for " + med.getNom() + " at " + time);
                         }
-                    }, parseTimeToMillis(time.trim())); // Simplified for demo; adjust for accuracy
+                    }, parseTimeToMillis(time.trim()));
                 }
             }
         } catch (SQLException e) {
@@ -247,42 +271,6 @@ public class MedicamentController {
     private long parseTimeToMillis(String time) {
         // This is a placeholder; use a proper scheduler like Quartz for real-time scheduling
         return System.currentTimeMillis() + 10000; // Trigger after 10 seconds for testing
-    }
-
-    // Send email reminder
-    private void sendReminderEmail(Medicament med) {
-        String to = med.getEmail();
-        String from = "chabaanenour71@gmail.com";
-        String host = "smtp.gmail.com";
-
-        Properties properties = new Properties();
-        properties.put("mail.smtp.auth", "true");
-        properties.put("mail.smtp.starttls.enable", "true");
-        properties.put("mail.smtp.host", host);
-        properties.put("mail.smtp.port", "587");
-        properties.put("mail.smtp.ssl.trust", "*"); // Temporary workaround for SSL issues
-
-        Session session = Session.getInstance(properties, new Authenticator() {
-            @Override
-            protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication("chabaanenour71@gmail.com", "efcmvlxwvuukoohf");
-            }
-        });
-        session.setDebug(true); // Enable debugging for troubleshooting
-
-        try {
-            MimeMessage message = new MimeMessage(session);
-            message.setFrom(new InternetAddress(from));
-            message.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
-            message.setSubject("Rappel de prise de médicament");
-            message.setText("Bonjour,\n\nVeuillez prendre " + med.getDosage() + " de " + med.getNom() + " à " + med.getSchedule() + ".\n\nCordialement,\nVotre application de gestion");
-
-            Transport.send(message);
-            System.out.println("Email sent successfully to " + to);
-        } catch (MessagingException e) {
-            System.err.println("Failed to send email: " + e.getMessage());
-            afficherAlerte("Erreur", "Échec de l'envoi de l'email: " + e.getMessage());
-        }
     }
 
     // Generate PDF report
@@ -300,61 +288,13 @@ public class MedicamentController {
                         ", Dosage: " + med.getDosage() +
                         ", Horaire: " + med.getSchedule() +
                         ", Email: " + med.getEmail() +
-                        ", Statut: À vérifier")); // Add logic to track status
+                        ", Statut: À vérifier"));
             }
 
             document.close();
             afficherAlerte("Succès", "Rapport généré avec succès sous 'rapport.pdf'");
-            sendReportEmail();
         } catch (Exception e) {
             afficherAlerte("Erreur", "Erreur lors de la génération du rapport: " + e.getMessage());
-        }
-    }
-
-    // Send PDF report via email
-    private void sendReportEmail() {
-        String to = "chabaanenour71@gmail.com"; // Replace with admin or patient email
-        String from = "chabaanenour71@gmail.com";
-        String host = "smtp.gmail.com";
-
-        Properties properties = new Properties();
-        properties.put("mail.smtp.auth", "true");
-        properties.put("mail.smtp.starttls.enable", "true");
-        properties.put("mail.smtp.host", host);
-        properties.put("mail.smtp.port", "587");
-        properties.put("mail.smtp.ssl.trust", "*"); // Temporary workaround for SSL issues
-
-        Session session = Session.getInstance(properties, new Authenticator() {
-            @Override
-            protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication("chabaanenour71@gmail.com", "efcmvlxwvuukoohf");
-            }
-        });
-        session.setDebug(true); // Enable debugging for troubleshooting
-
-        try {
-            MimeMessage message = new MimeMessage(session);
-            message.setFrom(new InternetAddress(from));
-            message.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
-            message.setSubject("Rapport des Rappels");
-
-            // Attach PDF
-            MimeBodyPart messageBodyPart = new MimeBodyPart();
-            messageBodyPart.setText("Veuillez trouver ci-joint le rapport des rappels.");
-            Multipart multipart = new MimeMultipart();
-            multipart.addBodyPart(messageBodyPart);
-
-            messageBodyPart = new MimeBodyPart();
-            File file = new File("rapport.pdf");
-            messageBodyPart.attachFile(file);
-            multipart.addBodyPart(messageBodyPart);
-
-            message.setContent(multipart);
-            Transport.send(message);
-            System.out.println("Report email sent successfully to " + to);
-        } catch (Exception e) {
-            System.err.println("Failed to send report email: " + e.getMessage());
-            afficherAlerte("Erreur", "Échec de l'envoi du rapport: " + e.getMessage());
         }
     }
 }

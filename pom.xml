@@ -53,6 +53,12 @@
             <artifactId>layout</artifactId>
             <version>${itext.version}</version>
         </dependency>
+        <!-- JavaMail API -->
+        <dependency>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>jakarta.mail</artifactId>
+            <version>2.0.1</version>
+        </dependency>
     </dependencies>
 
     <!-- ✅ Add iText repository (optional but sometimes needed) -->

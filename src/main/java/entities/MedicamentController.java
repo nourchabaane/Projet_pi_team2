@@ -1,11 +1,17 @@
 package entities;
 
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
 import services.MedicamentService;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -15,6 +21,8 @@ import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Paragraph;
 import java.io.FileOutputStream;
 import java.util.regex.Pattern;
+import services.EmailService;
+import jakarta.mail.MessagingException;
 
 public class MedicamentController {
 
@@ -50,6 +58,13 @@ public class MedicamentController {
     private TableColumn<Medicament, String> scheduleCol;
     @FXML
     private Button generateReportButton;
+    @FXML
+    private Button assistantButton;
+    
+    @FXML
+    private Button dashboardButton;
+    @FXML
+    private Pagination pagination;
 
     private MedicamentService medicamentService;
 
@@ -63,6 +78,17 @@ public class MedicamentController {
             "^(\\+\\d{1,3})?\\d{10}$"
     );
 
+    private static final int ITEMS_PER_PAGE = 10;
+    private ObservableList<Medicament> allMedicaments;
+
+    @FXML
+    public void openDashboard() throws IOException {
+        Parent root = FXMLLoader.load(getClass().getResource("/dashboard.fxml"));
+        Scene scene = new Scene(root);
+        Stage stage = (Stage) dashboardButton.getScene().getWindow();
+        stage.setScene(scene);
+    }
+    
     @FXML
     public void initialize() {
         medicamentService = new MedicamentService();
@@ -79,16 +105,23 @@ public class MedicamentController {
         // Load data into the table
         chargerDonneesTableau();
 
+        // Set up pagination
+        pagination.setPageFactory(this::createPage);
+
         // Schedule reminders (placeholder, no email action)
         scheduleReminders();
 
         // Add generate report button action
         generateReportButton.setOnAction(e -> generateReport());
+
+        // Add assistant button action
+        assistantButton.setOnAction(e -> navigateToAssistant());
     }
 
     @FXML
     public void ajouterMedicament() {
         try {
+            System.out.println("Starting to add medication...");
             String validationError = validateInputs();
             if (validationError != null) {
                 afficherAlerte("Erreur de validation", validationError);
@@ -104,6 +137,27 @@ public class MedicamentController {
             Medicament med = new Medicament(0, nom, description, email, phone, dosage, schedule);
             medicamentService.ajouter(med);
 
+            // Send immediate email notification for new medication
+            if (email != null && !email.isEmpty()) {
+                try {
+                    System.out.println("Attempting to send email to: " + email);
+                    EmailService.sendMedicationReminder(
+                        email,
+                        "Patient",
+                        nom,
+                        dosage,
+                        schedule
+                    );
+                    System.out.println("Email sent successfully!");
+                } catch (MessagingException e) {
+                    System.err.println("Failed to send email: " + e.getMessage());
+                    e.printStackTrace();
+                    afficherAlerte("Attention", "Médicament ajouté mais échec de l'envoi de l'email: " + e.getMessage());
+                }
+            } else {
+                System.out.println("No email provided, skipping email notification.");
+            }
+            
             afficherAlerte("Succès", "Médicament ajouté avec succès !");
             chargerDonneesTableau();
             viderChamps();
@@ -159,10 +213,31 @@ public class MedicamentController {
 
     private void chargerDonneesTableau() {
         try {
-            ObservableList<Medicament> medicaments = FXCollections.observableArrayList(medicamentService.afficherTous());
-            medicamentsTable.setItems(medicaments);
+            allMedicaments = FXCollections.observableArrayList(medicamentService.afficherTous());
+            int totalPages = (allMedicaments.size() + ITEMS_PER_PAGE - 1) / ITEMS_PER_PAGE;
+            pagination.setPageCount(totalPages);
+            pagination.setCurrentPageIndex(0);
         } catch (SQLException e) {
             afficherAlerte("Erreur", "Erreur lors du chargement des données: " + e.getMessage());
+        }
+    }
+
+    private TableView<Medicament> createPage(int pageIndex) {
+        int fromIndex = pageIndex * ITEMS_PER_PAGE;
+        int toIndex = Math.min(fromIndex + ITEMS_PER_PAGE, allMedicaments.size());
+        medicamentsTable.setItems(FXCollections.observableArrayList(
+                allMedicaments.subList(fromIndex, toIndex)));
+        return medicamentsTable;
+    }
+
+    private void navigateToAssistant() {
+        try {
+            Parent root = FXMLLoader.load(getClass().getResource("/assistant.fxml"));
+            Scene scene = new Scene(root);
+            Stage stage = (Stage) assistantButton.getScene().getWindow();
+            stage.setScene(scene);
+        } catch (IOException e) {
+            afficherAlerte("Erreur", "Erreur lors de la navigation: " + e.getMessage());
         }
     }
 
@@ -222,8 +297,18 @@ public class MedicamentController {
                     timer.schedule(new TimerTask() {
                         @Override
                         public void run() {
-                            // No email action, just a placeholder
-                            System.out.println("Reminder scheduled for " + med.getNom() + " at " + time);
+                            try {
+                                EmailService.sendMedicationReminder(
+                                    med.getEmail(),
+                                    "Patient", // You might want to add a patient name field
+                                    med.getNom(),
+                                    med.getDosage(),
+                                    med.getSchedule()
+                                );
+                                System.out.println("Email reminder sent for " + med.getNom() + " at " + time);
+                            } catch (MessagingException e) {
+                                System.err.println("Failed to send email reminder: " + e.getMessage());
+                            }
                         }
                     }, parseTimeToMillis(time.trim()));
                 }
@@ -258,7 +343,18 @@ public class MedicamentController {
             }
 
             document.close();
-            afficherAlerte("Succès", "Rapport généré avec succès sous 'rapport.pdf'");
+            // Send the report by email if an email is provided
+            String email = medicaments.isEmpty() ? null : medicaments.get(0).getEmail();
+            if (email != null && !email.isEmpty()) {
+                try {
+                    EmailService.sendMedicationReport(email, "Patient", "rapport.pdf");
+                    afficherAlerte("Succès", "Rapport généré avec succès et envoyé par email à " + email);
+                } catch (MessagingException e) {
+                    afficherAlerte("Attention", "Rapport généré mais échec de l'envoi par email: " + e.getMessage());
+                }
+            } else {
+                afficherAlerte("Succès", "Rapport généré avec succès sous 'rapport.pdf'");
+            }
         } catch (Exception e) {
             afficherAlerte("Erreur", "Erreur lors de la génération du rapport: " + e.getMessage());
         }
